@@ -5,6 +5,9 @@ const app = express()
 app.use(express.json())
 app.use(cors())
 
+//use builtin static middleware to make express show static content of the frontend
+app.use(express.static('dist'))
+
 const requestLogger = (request, response, next) => {
     console.log('Method: ', request.method)
     console.log('path: ', request.path)
