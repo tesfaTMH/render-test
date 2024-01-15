@@ -1,10 +1,12 @@
 const express = require('express')
 const cors = require('cors')
+require('dotenv').config()
 
 const app = express()
 app.use(express.json())
 app.use(cors())
 
+const Note = require('./models/note')
 //use builtin static middleware to make express show static content of the frontend
 app.use(express.static('dist'))
 
@@ -22,7 +24,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(requestLogger)
 
-let notes = [
+{/*let notes = [
     {
       id: 1,
       content: "HTML is easy",
@@ -39,13 +41,16 @@ let notes = [
       important: true
     }
   ]
+*/}
 
 app.get('/', (req, res) => {
     res.send('<h1>Hello World!</h1>')
 })
 
 app.get('/api/notes', (req, res) => {
-    res.json(notes)
+    Note.find({}).then(notes => {
+        res.json(notes)
+    })
 })
 
 app.get('/app/notes/:id', (req, res) => {
@@ -98,7 +103,7 @@ app.post('/app/notes', (req, res) => {
 
 app.use(unknownEndpoint)
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
