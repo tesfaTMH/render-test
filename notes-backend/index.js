@@ -53,6 +53,7 @@ app.get('/api/notes', (req, res) => {
     })
 })
 
+{/*
 app.get('/app/notes/:id', (req, res) => {
     const id = Number(req.params.id)
 
@@ -63,6 +64,14 @@ app.get('/app/notes/:id', (req, res) => {
     } else {
         res.status(404).end()
     }
+})
+*/}
+
+// fetching note from mongo using findById
+app.get('api/notes/:id', (req, res) => {
+    Note.findById(req.params.id).then(note => {
+        res.json(note)
+    })
 })
 
 app.delete('/app/notes/:id', (req, res) => {
@@ -80,7 +89,7 @@ const generateId = () => {
     return maxId + 1
 }
 
-app.post('/app/notes', (req, res) => {
+{/*app.post('/app/notes', (req, res) => {
     const body = req.body
 
     if(!body.content){
@@ -99,6 +108,24 @@ app.post('/app/notes', (req, res) => {
     notes = notes.concat(note)
 
     res.json(note)
+})
+*/}
+// post using mongodb for the data rendering 
+app.post('/api/notes', (req, res) => {
+    const body = req.body
+
+    if (body.content === undefined) {
+        return res.status(400).json({ error: 'Content missing' })
+    }
+
+    const note = new Note({
+        content: body.content,
+        important: body.important || false
+    })
+
+    note.save().then(savedNote => {
+        res.json(savedNote)
+    })
 })
 
 app.use(unknownEndpoint)
