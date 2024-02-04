@@ -3,133 +3,28 @@ const cors = require("cors")
 require("dotenv").config()
 
 const app = express()
-app.use(express.json())
+const notes = require("./routes/notes")
+
+// middleware to read body, parse it and place results in req.body
+app.use(express.json()) // for application/json
+//app.use(express.urlencoded()) // for application/x-www-form-urlencoded
+
+//routes
+app.use("/api/notes", notes)
+
 app.use(cors())
+const connectDB = require("./db/connect")
 
 const Note = require("./models/note")
 //use builtin static middleware to make express show static content of the frontend
 app.use(express.static("dist"))
-
-const requestLogger = (request, response, next) => {
-  console.log("Method: ", request.method)
-  console.log("path: ", request.path)
-  console.log("Body: ", request.body)
-  console.log("---")
-  next()
-}
-
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: "unknown endpoint" })
-}
-
+const requestLogger = require("./middleware/request-Logger")
+const unknownEndpoint = require("./middleware/unknown-Endpoint")
 //middleware for error handlng
-const errorHandler = (error, req, res, next) => {
-  console.log(error.message)
-
-  if (error.name === "CastError") {
-    return res.status(400).send({ error: "malformatted id" })
-  } else if (error.name === "ValidationError") {
-    return res.status(400).json({ error: error.message })
-  }
-  next(error)
-}
+const errorHandler = require("./middleware/error-Handler")
 
 app.use(requestLogger)
-
-{
-  /*let notes = [
-    {
-      id: 1,
-      content: "HTML is easy",
-      important: true
-    },
-    {
-      id: 2,
-      content: "Browser can execute only JavaScript",
-      important: false
-    },
-    {
-      id: 3,
-      content: "GET and POST are the most important methods of HTTP protocol",
-      important: true
-    }
-  ]
-*/
-}
-
-app.get("/", (req, res) => {
-  res.send("<h1>Hello World!</h1>")
-})
-
-app.get("/api/notes", (req, res) => {
-  Note.find({}).then((notes) => {
-    res.json(notes)
-  })
-})
-
-{
-  /*
-app.get('/app/notes/:id', (req, res) => {
-    const id = Number(req.params.id)
-
-    const note = notes.find(note => note.id === id)
-
-    if(note){
-        res.json(note)
-    } else {
-        res.status(404).end()
-    }
-})
-*/
-}
-
-// fetching note from mongo using findById
-app.get("/api/notes/:id", (req, res, next) => {
-  Note.findById(req.params.id)
-    .then((note) => {
-      if (note) {
-        res.json(note)
-      } else {
-        res.status(404).end()
-      }
-    })
-    .catch((error) => next(error))
-})
-
-// update data on MongoDB
-app.put("/api/notes/:id", (req, res, next) => {
-  const { content, important } = req.body
-
-  Note.findByIdAndUpdate(
-    req.params.id,
-    { content, important },
-    { new: true, runValidators: true, context: "query" }
-  )
-    .then((updatedNote) => {
-      res.json(updatedNote)
-    })
-    .catch((error) => next(error))
-})
-
-{
-  /*app.delete('/app/notes/:id', (req, res) => {
-    const id = Number(req.params.id)
-
-    notes = notes.filter(note => note.id !== id)
-
-    res.status(204).end()
-})
-*/
-}
-
-// delete operation on MongoDB data
-app.delete("/app/notes/:id", (req, res, next) => {
-  Note.findByIdAndDelete(req.params.id)
-    .then((result) => {
-      res.status(204).end()
-    })
-    .catch((error) => next(error))
-})
+app.use(unknownEndpoint)
 
 {
   /*const generateId = () => {
@@ -161,28 +56,6 @@ app.post('/app/notes', (req, res) => {
 })
 */
 }
-// post using mongodb for the data rendering
-app.post("/api/notes", (req, res, next) => {
-  const body = req.body
-  //can be defined using validation rule when defining schema
-  {
-    /*if (body.content === undefined) {
-        return res.status(400).json({ error: 'Content missing' })
-    }*/
-  }
-
-  const note = new Note({
-    content: body.content,
-    important: body.important || false,
-  })
-
-  note
-    .save()
-    .then((savedNote) => {
-      res.json(savedNote)
-    })
-    .catch((error) => next(error))
-})
 
 app.use(unknownEndpoint)
 
@@ -190,7 +63,19 @@ app.use(unknownEndpoint)
 app.use(errorHandler)
 
 const PORT = process.env.PORT
+const url = process.env.MONGODB_URI
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+const startServer = async () => {
+  try {
+    console.log("Connecting to-> DB")
+    await connectDB(url)
+    console.log("Connected to MongoDB")
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`)
+    })
+  } catch (error) {
+    console.log("error connecting to MongoDB: ", error.message)
+  }
+}
+
+startServer()
